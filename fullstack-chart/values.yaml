@@ -1,0 +1,17 @@
+replicaCount: 3
+
+database:
+  name: appdb
+  storage: 1Gi
+
+backend:
+  image: my-backend:latest
+  port: 8080
+  persistence:
+    enabled: true
+    size: 1Gi
+    mountPath: /app/static/images
+
+frontend:
+  image: my-frontend:latest
+  port: 80

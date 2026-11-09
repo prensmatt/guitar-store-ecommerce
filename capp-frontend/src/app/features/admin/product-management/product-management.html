@@ -1,0 +1,208 @@
+<div class="container">
+  <div class="header">
+    <h1>Product Management</h1>
+    <div class="nav">
+      <button (click)="openCreateForm()" class="btn-create">+ New Product</button>
+    </div>
+  </div>
+
+  @if (success) {
+    <div class="success">{{ success }}</div>
+  }
+
+  @if (error) {
+    <div class="error">{{ error }}</div>
+  }
+
+  @if (showForm) {
+    <div class="form-card">
+      <h2>{{ editingProduct ? 'Edit Product' : 'New Product' }}</h2>
+      <form (ngSubmit)="onSubmit()">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Name <span class="required">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="form.name"
+              name="name"
+              (input)="form.slug = generateSlug(form.name)"
+              placeholder="Product name"
+            />
+          </div>
+          <div class="form-group">
+            <label>Slug <span class="required">*</span></label>
+            <input
+              type="text"
+              [(ngModel)]="form.slug"
+              name="slug"
+              placeholder="auto-generated"
+            />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Description <span class="optional">(optional)</span></label>
+          <textarea [(ngModel)]="form.description" name="description" rows="3" placeholder="Product description"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Price <span class="required">*</span></label>
+            <input type="number" [(ngModel)]="form.price" name="price" min="0.01" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="form-group">
+            <label>Stock <span class="required">*</span></label>
+            <input type="number" [(ngModel)]="form.stock" name="stock" min="0" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label>Category <span class="required">*</span></label>
+            <select [(ngModel)]="form.category_id" name="category_id">
+              <option [value]="0" disabled selected>-- Select a category --</option>
+              @for (category of categories; track category.id) {
+                <option [value]="category.id">{{ category.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-save">
+            {{ editingProduct ? 'Update' : 'Create' }}
+          </button>
+          <button type="button" (click)="cancelForm()" class="btn-cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <div class="search-bar">
+    <input
+      type="text"
+      [(ngModel)]="searchTerm"
+      name="searchTerm"
+      (ngModelChange)="onSearchChange()"
+      placeholder="Search products by name, slug, description, category..."
+      class="search-input"
+    />
+    @if (searchTerm) {
+      <button type="button" (click)="clearSearch()" class="btn-clear-search">✕ Clear</button>
+    }
+  </div>
+
+  @if (loading) {
+    <div class="loading">Loading...</div>
+  }
+
+  @if (!loading && filteredProducts.length > 0) {
+    <div class="results-info">
+      Showing {{ rangeStart }}–{{ rangeEnd }} of {{ filteredProducts.length }} product{{ filteredProducts.length === 1 ? '' : 's' }}
+      @if (searchTerm) {
+        <span> (filtered from {{ products.length }} total)</span>
+      }
+    </div>
+
+    <!-- Desktop table -->
+    <table>
+      <thead>
+        <tr>
+          <th>Image</th>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (product of pagedProducts; track product.id) {
+          <tr>
+            <td>
+              <img
+                [src]="getImageUrl(product.image_url)"
+                [alt]="product.name"
+                class="table-image"
+              />
+            </td>
+            <td>{{ product.id }}</td>
+            <td>{{ product.name }}</td>
+            <td>${{ product.price | number:'1.2-2' }}</td>
+            <td>{{ product.stock }}</td>
+            <td class="actions">
+              <button (click)="openEditForm(product)" class="btn-edit">Edit</button>
+              <button (click)="deleteProduct(product.id)" class="btn-delete">Delete</button>
+              <label class="btn-upload">
+                Upload Image
+                <input
+                  type="file"
+                  accept="image/*"
+                  style="display:none"
+                  (change)="onFileSelected($event, product.id)"
+                />
+              </label>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <!-- Mobile cards -->
+    <div class="mobile-cards">
+      @for (product of pagedProducts; track product.id) {
+        <div class="mobile-card">
+          <img
+            [src]="getImageUrl(product.image_url)"
+            [alt]="product.name"
+          />
+          <div class="mobile-card-info">
+            <h3>{{ product.name }}</h3>
+            <p>${{ product.price | number:'1.2-2' }} · {{ product.stock }} in stock</p>
+          </div>
+          <div class="mobile-card-actions">
+            <button (click)="openEditForm(product)" class="btn-edit">Edit</button>
+            <button (click)="deleteProduct(product.id)" class="btn-delete">Delete</button>
+            <label class="btn-upload">
+              📷
+              <input
+                type="file"
+                accept="image/*"
+                style="display:none"
+                (change)="onFileSelected($event, product.id)"
+              />
+            </label>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Pagination controls -->
+    @if (totalPages > 1) {
+      <div class="pagination">
+        <button
+          type="button"
+          (click)="previousPage()"
+          [disabled]="currentPage === 1"
+          class="btn-page"
+        >
+          ← Previous
+        </button>
+        <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+        <button
+          type="button"
+          (click)="nextPage()"
+          [disabled]="currentPage === totalPages"
+          class="btn-page"
+        >
+          Next →
+        </button>
+      </div>
+    }
+  }
+
+  @if (!loading && filteredProducts.length === 0 && products.length > 0) {
+    <div class="empty">No products match "{{ searchTerm }}".</div>
+  }
+
+  @if (!loading && products.length === 0) {
+    <div class="empty">No products yet. Create one!</div>
+  }
+</div>
